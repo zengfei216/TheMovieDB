@@ -23,54 +23,55 @@ def getQueryString(query_dict):
 
 conn = http.client.HTTPSConnection("api.themoviedb.org")
 
-# # Get all movie genres and genre id
-# data = {
-#     'api_key': API,
-# }
-# query_string = getQueryString(data)
-# conn.request("GET", '/3/genre/movie/list?'+query_string)
-# response_str = conn.getresponse().read().decode()
-# # turn response str to dict
-# genre_dict = json.loads(response_str)
-# # create a lookup table for genre and its id
-# genre_id_lookup_dict = {}
-# for item in genre_dict['genres']:
-#     genre_id_lookup_dict[item['name']] = item['id']
-#
-# #print(genre_id_lookup_dict)
-#
-# # create file if not exist
-# file = open('movie_ID_name.csv', 'w+')
-#
-# counter = 0
-# page = 1
-# while counter < retrieve_cnt:
-#     data = {
-#         'api_key': API,
-#         'with_genres': genre_id_lookup_dict[genre],
-#         'sort_by': 'popularity.desc',
-#         'primary_release_date.gte': '2004-01-01',
-#         'page': page,
-#     }
-#     query_string = getQueryString(data)
-#     conn.request("GET", '/3/discover/movie?' + query_string)
-#     response_str = conn.getresponse().read().decode()
-#     # turn response str to dict
-#     movie_dict = json.loads(response_str)
-#
-#     movies = movie_dict['results']
-#
-#     for i in range(20):
-#         file.write("%d,%s\n"%(movies[i]['id'], movies[i]['title']))
-#         counter += 1
-#         if counter == retrieve_cnt:
-#             break
-#
-#     page += 1
-#
-# file.close()
+# Get all movie genres and genre id
+data = {
+    'api_key': API,
+}
+query_string = getQueryString(data)
+conn.request("GET", '/3/genre/movie/list?'+query_string)
+response_str = conn.getresponse().read().decode()
+# turn response str to dict
+genre_dict = json.loads(response_str)
+# create a lookup table for genre and its id
+genre_id_lookup_dict = {}
+for item in genre_dict['genres']:
+    genre_id_lookup_dict[item['name']] = item['id']
+
+#print(genre_id_lookup_dict)
+
+# create file if not exist
+file = open('movie_ID_name.csv', 'w+')
+
+counter = 0
+page = 1
+while counter < retrieve_cnt:
+    data = {
+        'api_key': API,
+        'with_genres': genre_id_lookup_dict[genre],
+        'sort_by': 'popularity.desc',
+        'primary_release_date.gte': '2004-01-01',
+        'page': page,
+    }
+    query_string = getQueryString(data)
+    conn.request("GET", '/3/discover/movie?' + query_string)
+    response_str = conn.getresponse().read().decode()
+    # turn response str to dict
+    movie_dict = json.loads(response_str)
+
+    movies = movie_dict['results']
+
+    for i in range(20):
+        file.write("%d,%s\n"%(movies[i]['id'], movies[i]['title']))
+        counter += 1
+        if counter == retrieve_cnt:
+            break
+
+    page += 1
+
+file.close()
 
 # ************ Q1 part c **************
+time.sleep(10)
 
 with open('movie_ID_name.csv') as file:
     movie_list = file.readlines()
@@ -85,8 +86,11 @@ data = {
 query_string = getQueryString(data)
 similar_movie_dict = {}
 request_counter = 0
-for movie_id in movie_id_list:
 
+#debug
+#movie_id_list = movie_id_list[0:30]
+
+for movie_id in movie_id_list:
     conn.request("GET", '/3/movie/%s/similar?'%movie_id + query_string)
     request_counter += 1
     response_str = conn.getresponse().read().decode()
@@ -102,10 +106,28 @@ for movie_id in movie_id_list:
 
     similar_movie_dict[movie_id] = similar_movie_id_list
 
-    if request_counter == 40:
-        time.sleep(60) # sleep 60s
+    if request_counter%40 == 0:
+        print("wait 10s\n")
+        time.sleep(10) # sleep 10s
 
+#print(similar_movie_dict)
 
+movie_id_list.sort()
 
+movie_pair = []
+for id in movie_id_list:
+    for similar_id in similar_movie_dict[id]:
+        if similar_id in movie_id_list and id in similar_movie_dict[similar_id]:
+                similar_movie_dict[similar_id].remove(id)
+        movie_pair.append(str(id) + ',' + str(similar_id))
 
+#print(similar_movie_dict)
 
+# create file if not exist
+file = open('movie_ID_sim_movie_ID.csv', 'w+')
+
+for item in movie_pair:
+    file.write(item)
+    file.write('\n')
+
+file.close()
